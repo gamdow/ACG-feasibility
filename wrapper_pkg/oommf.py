@@ -4,7 +4,6 @@ import sys
 import numpy as np
 import progressbar
 import discretisedfield as df
-import oommfc as oc
 import shutil
 import subprocess
 import glob
