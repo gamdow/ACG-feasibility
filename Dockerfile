@@ -5,6 +5,12 @@ RUN apt-get update
 WORKDIR /root
 
 
+RUN apt-get install -y gcc g++ make wget git \
+  && gcc --version >> /root/versions.txt \
+  && g++ --version >> /root/versions.txt \
+  && echo "\n" >> /root/versions.txt
+
+
 # INSTALL CONDA
 ENV CONDA_INSTALL_PATH=/opt/conda
 ENV PATH=$CONDA_INSTALL_PATH/bin:$PATH
@@ -26,23 +32,26 @@ RUN conda install -y numpy matplotlib progressbar2 jupyter \
   && echo "\n" >> /root/versions.txt
 
 
-# Install JOOMMF
+# Install OOMMF
+RUN apt-get update
 ENV OOMMFTCL /root/oommf/oommf/oommf.tcl
-RUN apt-get install -y git tcl-dev tk-dev \
+RUN apt-get install -y tcl-dev tk-dev \
   && git clone https://github.com/fangohr/oommf.git \
   && cd oommf \
-  && echo "# JOOMMF" >> /root/versions.txt \
-  && git config --get remote.origin.url >> /root/versions.txt \
-  && git rev-parse HEAD >> /root/versions.txt \
-  && echo "\n" >> /root/versions.txt \
-  && make \
-  && pip install oommfc \
-  && python -c "import oommfc"
+  && echo "# OOMMF" >> /root/versions.txt \
+  && cat /root/oommf/oommf-version >> /root/versions.txt \
+  && make
+RUN pip install discretisedfield sarge \
+  && python -c "import discretisedfield" \
+  && pip list | grep "discretisedfield" >> /root/versions.txt \
+  && echo "\n" >> /root/versions.txt
+#  && pip install oommfc \
+#  && python -c "import oommfc"
 
 
 # INSTALL DEVITO
 ENV LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8 LANGUAGE=en_US.UTF-8
-RUN apt-get install -y git gcc locales locales-all libgl1-mesa-glx \
+RUN apt-get install -y locales locales-all libgl1-mesa-glx \
   && git clone https://github.com/opesci/devito.git \
   && cd devito \
   && echo "# Devito" >> /root/versions.txt \
@@ -71,7 +80,7 @@ RUN apt-get install -y openmpi-bin libopenmpi-dev \
 
 ## HDF5
 ENV HDF5_VERSION=hdf5-1.8.19 HDF5_INSTALL_PATH=/usr/local
-RUN apt-get install -y wget bzip2 gcc g++ make \
+RUN apt-get install -y wget bzip2 make \
   && wget -q https://support.hdfgroup.org/ftp/HDF5/current18/src/$HDF5_VERSION.tar.bz2 -O hdf5.tar.bz2 \
   && tar -xjf hdf5.tar.bz2 \
   && rm hdf5.tar.bz2 \
@@ -99,7 +108,7 @@ RUN bash ./cuda.run --silent --toolkit \
 
 ## OPS
 ENV OPS_COMPILER=gnu OPS_INSTALL_PATH=/root/OPS/ops
-RUN apt-get install -y git make g++ python-pytools \
+RUN apt-get install -y python-pytools \
   && git clone https://github.com/gamdow/OPS.git \
   && cd OPS \
   && echo "# OPS" >> /root/versions.txt \
@@ -114,7 +123,7 @@ RUN apt-get install -y git make g++ python-pytools \
   && python -c "import ops_translator.c.ops" \
 
 ## OpenSBLI
-RUN apt-get install -y git python-pytools \
+RUN apt-get install -y python-pytools \
   && git clone https://github.com/gamdow/opensbli.git \
 #  && 2to3 -W -n opensbli \
   && cd opensbli \
