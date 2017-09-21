@@ -2,7 +2,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 vector_index = 0
-default_dpi = 400
+dpi = 400
 
 def norm(val):
     return np.linalg.norm(val, axis=vector_index)
@@ -139,8 +139,7 @@ class Grid(object):
         scatter_scale = image_width * 2 * step * 10000 / (nx * ny)
         quiver_scale = 1.2 * np.sqrt(nx * ny) / step
 
-        dpi = None if filename is None else default_dpi
-        fig, ax = plt.subplots(num_z, 1, figsize=(image_width, num_z * image_width / aspect_ratio), dpi=dpi)
+        fig, ax = plt.subplots(num_z, 1, figsize=(image_width, num_z * image_width / aspect_ratio))
         P, Q, T = [], [], []
         if not hasattr(ax, "__iter__"):
             ax = [ax]
@@ -164,7 +163,7 @@ class Grid(object):
             a.legend(loc='upper right')
 
         if not filename is None:
-            plt.savefig(filename, bbox_inches='tight')
+            plt.savefig(filename, bbox_inches='tight', dpi=dpi)
 
         if show_plot:
             plt.show()

@@ -5,12 +5,12 @@ from matplotlib.ticker import LogLocator
 from IPython.display import HTML, display
 import progressbar
 
-from .grid import Grid, default_dpi, expand_slice
+from .grid import Grid, dpi, expand_slice
 
 rc('animation', html='html5')
 
-def plot(xs, ys, set_labels=None, dpi=None, figsize=(7, 3)):
-    fig, ax = plt.subplots(1, 1, figsize=figsize, dpi=dpi)
+def plot(xs, ys, set_labels=None, figsize=(7, 3)):
+    fig, ax = plt.subplots(1, 1, figsize=figsize)
     fig.tight_layout()
     if set_labels is not None:
         ax.set(**set_labels)
@@ -114,21 +114,19 @@ class Data(object):
         display(ret)
 
     def plot_evolution(self, times, mean_results, var_results, figsize, filename=None):
-        dpi = None if filename is None else default_dpi
         figsize = (figsize[0], figsize[1] / 2)
-        plot(times, mean_results, set_labels={"xlabel":r'Time (s)', "ylabel":"Mean"}, dpi=dpi, figsize=figsize)
+        plot(times, mean_results, set_labels={"xlabel":r'Time (s)', "ylabel":"Mean"}, figsize=figsize)
         if not filename is None:
-            plt.savefig(filename.replace('.png', '_mean.png'), bbox_inches='tight')
-        plot(times, var_results, set_labels={"xlabel":r'Time (s)', "ylabel":"Variance"}, dpi=dpi, figsize=figsize)
+            plt.savefig(filename.replace('.png', '_mean.png'), bbox_inches='tight', dpi=dpi)
+        plot(times, var_results, set_labels={"xlabel":r'Time (s)', "ylabel":"Variance"}, figsize=figsize)
         if not filename is None:
-            plt.savefig(filename.replace('.png', '_variance.png'), bbox_inches='tight')
+            plt.savefig(filename.replace('.png', '_variance.png'), bbox_inches='tight', dpi=dpi)
         plt.show()
 
     def plot_energy(self, times, sum_energies, normed_energies, figsize, filename=None):
-        dpi = None if filename is None else default_dpi
-        ax = plot(times, sum_energies, {"xlabel":r"Time (s)", "ylabel":r"Energy (J)"}, dpi=dpi, figsize=figsize)
+        ax = plot(times, sum_energies, {"xlabel":r"Time (s)", "ylabel":r"Energy (J)"}, figsize=figsize)
         if not filename is None:
-            plt.savefig(filename, bbox_inches='tight')
+            plt.savefig(filename, bbox_inches='tight', dpi=dpi)
         plt.show()
 
     def plot_comparison(self, other, steps, title, figsize):
