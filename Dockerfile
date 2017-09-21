@@ -136,11 +136,14 @@ ENV DEVITO_OPENMP=1
 # Jupyter Tweaks
 RUN jupyter notebook --generate-config --allow-root \
   && echo "c.NotebookApp.iopub_data_rate_limit = 100000000" >> .jupyter/jupyter_notebook_config.py \
+  && echo "c.NotebookApp.token = ''" >> .jupyter/jupyter_notebook_config.py \
   && mkdir .jupyter/custom \
   && echo ".container { width:100% !important; }" > .jupyter/custom/custom.css
 
 # Jupyter Alias
-RUN echo 'alias notebook="jupyter notebook --allow-root --no-browser --ip=0.0.0.0"' >> ~/.bashrc
+#RUN echo 'alias notebook="jupyter notebook --allow-root --no-browser --ip=0.0.0.0"' >> ~/.bashrc
+
+WORKDIR working
 
 # Start Jupyter Automatically
-#ENTRYPOINT ["/bin/bash", "-c", "cp versions.txt working/versions.txt && jupyter notebook --allow-root --no-browser --ip=0.0.0.0"]
+ENTRYPOINT ["/bin/bash", "-c", "cp ../versions.txt versions.txt && jupyter notebook --allow-root --no-browser --ip=0.0.0.0"]
