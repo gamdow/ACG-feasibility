@@ -200,8 +200,8 @@ class Sim(object):
     def plot(self, i, zs, image_width=10, filename=None, show_plot=True):
         self.data.plot(i, zs, image_width=image_width, filename=filename, show_plot=show_plot)
 
-    def animate(self, zs, time_range=[None,None], max_frames=75, image_width=10, fps=15):
-        self.data.animate(zs, time_range=time_range, max_frames=max_frames, image_width=image_width, fps=fps)
+    def animate(self, zs, time_range=[None,None], max_frames=75, image_width=10, fps=15, filename=None):
+        self.data.animate(zs, time_range=time_range, max_frames=max_frames, image_width=image_width, fps=fps, filename=filename)
 
     def plot_evolution(self, time_range=[None], test_names={"Norm", "Self-Alignment", "Zeeman Alignment", "Anisotropy Alignment"}, figsize=(7, 4), filename=None):
         tests = {}

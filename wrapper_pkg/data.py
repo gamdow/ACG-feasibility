@@ -2,7 +2,7 @@ import sys
 import numpy as np
 from matplotlib import pyplot as plt, animation, rc
 from matplotlib.ticker import LogLocator
-from IPython.display import HTML, display
+from IPython.display import HTML, display, Video
 import progressbar
 
 from .grid import Grid, dpi, expand_slice
@@ -81,7 +81,7 @@ class Data(object):
     def plot(self, i, zs, image_width=7, filename=None, show_plot=True):
         return self.datas[i].plot(zs, self.lengths, self.times[i], image_width=image_width, filename=filename, show_plot=show_plot)
 
-    def animate(self, zs, time_range=[None], max_frames=75, image_width=7, fps=15):
+    def animate(self, zs, time_range=[None], max_frames=75, image_width=7, fps=15, filename=None):
         print("Rendering animation ...", file=sys.stderr)
         fig, space_step, Q, P, T, scatter_scale = self.plot(0, zs, image_width=image_width, show_plot=False)
 
@@ -107,11 +107,13 @@ class Data(object):
                 return Q,
 
             anim = animation.FuncAnimation(fig, do_steps, range(steps), interval=1000/fps)
-            ret = HTML(anim.to_html5_video())
-
-        plt.close()
-
-        display(ret)
+            if not filename is None:
+                anim.save(filename, fps=fps)
+                plt.close()
+                display(Video(filename))
+            else:
+                plt.close()
+                display(anim)
 
     def plot_evolution(self, times, mean_results, var_results, figsize, filename=None):
         figsize = (figsize[0], figsize[1] / 2)
