@@ -1,9 +1,10 @@
 import os
+import sys
 
-if os.environ["DEVITO_OPENMP"] != "1":
+if not "DEVITO_OPENMP" in os.environ or os.environ["DEVITO_OPENMP"] != "1":
     print("*** WARNING: Devito OpenMP environment variable has not been set ***", file=sys.stderr)
 
-import sys
+
 import numpy as np
 from sympy import Matrix, Eq, solve
 import progressbar
