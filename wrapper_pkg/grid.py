@@ -113,7 +113,10 @@ class Grid(object):
         def func(data):
             center = np.array(np.shape(data)[1:]) / 2
             for index in np.ndindex(data[2].shape):
-                data[(slice(None),) + index] = (center - index) * -1
+                if (center == index).all():
+                    data[(slice(None),) + index] = [0,0,1]
+                else:
+                    data[(slice(None),) + index] = (center - index) * -1
 
         self.set(func, slices=slices)
 

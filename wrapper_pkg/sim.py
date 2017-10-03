@@ -67,6 +67,7 @@ class Sim(object):
         self.data = data.Data(grid_params)
 
         self.need_generate_kernels = True
+        self.initialised = False
 
         if print_params:
             print(self)
@@ -76,49 +77,60 @@ class Sim(object):
     def __str__(self):
         return "{}\nGRID\n{}\n\nTIME \n{}\n\tsave every = {}".format(self.sim_params, self.grid_params, self.time_params, self.save_every)
 
-    def init(self):
-        if self.need_generate_kernels:
-            print("Initialising simulation ...", file=sys.stderr)
+    def init(self, init_function=None, value=None):
 
-            start = time.time()
-            self.step_kernel = self.generate_step_kernel()
-            print("Generated step kernel: {:.2f} s".format(time.time() - start), file=sys.stderr)
+        with warnings.catch_warnings():
+            warnings.filterwarnings('error', category=RuntimeWarning)
+            try:
+                self.data.init()
+                if not init_function is None:
+                    if not value is None:
+                        init_function(value)
+                    else:
+                        init_function()
 
-            start = time.time()
-            self.energy_kernel = self.generate_energy_kernel()
-            #print("Generated energy kernel: {:.2f} s".format(time.time() - start), file=sys.stderr)
+                if self.need_generate_kernels:
+                    print("Initialising simulation ...", file=sys.stderr)
 
-            start = time.time()
-            self.detailed_energy_kernel = self.generate_detailed_energy_kernel(self.sim_params.terms)
-            #print("Generated detailed energy kernel: {:.2f} s".format(time.time() - start), file=sys.stderr)
+                    start = time.time()
+                    self.step_kernel = self.generate_step_kernel()
+                    print("Generated step kernel: {:.2f} s".format(time.time() - start), file=sys.stderr)
 
-            self.need_generate_kernels = False
+                    start = time.time()
+                    self.energy_kernel = self.generate_energy_kernel()
+                    #print("Generated energy kernel: {:.2f} s".format(time.time() - start), file=sys.stderr)
 
-        self.data.init()
+                    start = time.time()
+                    self.detailed_energy_kernel = self.generate_detailed_energy_kernel(self.sim_params.terms)
+                    #print("Generated detailed energy kernel: {:.2f} s".format(time.time() - start), file=sys.stderr)
+
+                    self.need_generate_kernels = False
+
+            # Check for divide-by-zero (Warning)
+            except (Warning) as e:
+                print("Initialisation Error: ", type(e), e, file=sys.stderr)
+                self.initialised = False
+                return
+
+        self.initialised = True
 
     def init_copy(self, value):
-        self.init()
-        self.data.set_copy(value)
+        self.init(self.data.set_copy, value)
 
     def init_random(self):
-        self.init()
-        self.data.set_random()
+        self.init(self.data.set_random)
 
     def init_vector(self, value):
-        self.init()
-        self.data.set_vector(value)
+        self.init(self.data.set_vector, value)
 
     def init_disk(self, value=0.7):
-        self.init()
-        self.data.set_disk(value)
+        self.init(self.data.set_disk, value)
 
     def init_vortex(self):
-        self.init()
-        self.data.set_vortex()
+        self.init(self.data.set_vortex)
 
     def init_flower(self):
-        self.init()
-        self.data.set_flower()
+        self.init(self.data.set_flower)
 
     def buffer_data(self, data):
         buffered_data = np.zeros((self.ndims,) + self.buffer_dims)
@@ -177,25 +189,29 @@ class Sim(object):
             bar.update(i * self.save_every, energy_ratio=energy_ratio)
 
     def run(self, energy_ratio_limit=1e-4):
-        print("Running simulation ...", file=sys.stderr)
-        start = time.time()
+        if self.initialised:
+            print("Running simulation ...", file=sys.stderr)
+            start = time.time()
 
-        with warnings.catch_warnings():
-            warnings.filterwarnings('error', category=RuntimeWarning)
-            try:
-                if self.time_params.bounded:
-                    self.run_bounded()
-                else:
-                    self.run_unbounded(energy_ratio_limit)
-            # Check for divide-by-zero (Warning)
-            except (Warning) as e:
-                print("Simulation Error: ", type(e), e, file=sys.stderr)
-                return False, time.time() - start
+            with warnings.catch_warnings():
+                warnings.filterwarnings('error', category=RuntimeWarning)
+                try:
+                    if self.time_params.bounded:
+                        self.run_bounded()
+                    else:
+                        self.run_unbounded(energy_ratio_limit)
+                # Check for divide-by-zero (Warning)
+                except (Warning) as e:
+                    print("Simulation Error: ", type(e), e, file=sys.stderr)
+                    return False, time.time() - start
 
-        duration = time.time() - start
-        print("Simulation Complete: {} steps, {} frames, {:.2f} s".format((self.data.length - 1) * self.save_every, self.data.length, duration), file=sys.stderr)
-        sys.stderr.flush()
-        return True, duration
+            duration = time.time() - start
+            print("Simulation Complete: {} steps, {} frames, {:.2f} s".format((self.data.length - 1) * self.save_every, self.data.length, duration), file=sys.stderr)
+            sys.stderr.flush()
+            return True, duration
+        else:
+            print("Skipping simulation: Not initialised", file=sys.stderr)
+            return False, 0
 
     def plot(self, i, zs, image_width=10, filename=None, show_plot=True):
         self.data.plot(i, zs, image_width=image_width, filename=filename, show_plot=show_plot)

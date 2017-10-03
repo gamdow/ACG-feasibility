@@ -146,7 +146,7 @@ class Sim(sim.Sim):
             field = df.Field(mesh, value=(0,0,1), norm=1)
             field.array[:] = np.transpose(f, (1,2,3,0))
             #field.norm = self.sim_params.Ms
-            field.write_oommf_file("{}/m0.omf".format(self.path))
+            field.write("{}/m0.omf".format(self.path))
 
             out = subprocess.Popen("tclsh $OOMMFTCL boxsi +fg run.mif", cwd="./{}".format(self.path), shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             stdout, stderr = out.communicate()
@@ -159,7 +159,7 @@ class Sim(sim.Sim):
                 raise RuntimeError
 
             last_omf_file = max(glob.iglob("{}/system*.omf".format(self.path)), key=os.path.getctime)
-            field = df.read_oommf_file(last_omf_file)
+            field = df.read(last_omf_file)
             #field.norm = 1
             t[:] = np.transpose(field.array, (3,0,1,2))
 

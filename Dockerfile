@@ -107,6 +107,7 @@ RUN bash ./cuda.run --silent --toolkit \
   && echo "\n" >> /root/versions.txt
 
 ## OPS
+# Editable install ("-e") doesn't work here (python import fails) for unknown reason.
 ENV OPS_COMPILER=gnu OPS_INSTALL_PATH=/root/OPS/ops
 RUN apt-get install -y python-pytools \
   && git clone https://github.com/gamdow/OPS.git \
@@ -118,14 +119,13 @@ RUN apt-get install -y python-pytools \
   && cd ops/c \
   && make \
   && cd ../.. \
-# Editable install ("-e") doesn't work here (python import fails) for unknown reason.
   && pip install . \
-  && python -c "import ops_translator.c.ops" \
+  && python -c "import ops_translator.c.ops"
 
 ## OpenSBLI
+#  && 2to3 -W -n opensbli \
 RUN apt-get install -y python-pytools \
   && git clone https://github.com/gamdow/opensbli.git \
-#  && 2to3 -W -n opensbli \
   && cd opensbli \
   && echo "# OpenSBLI" >> /root/versions.txt \
   && git config --get remote.origin.url >> /root/versions.txt \
@@ -153,6 +153,5 @@ RUN jupyter notebook --generate-config --allow-root \
 #RUN echo 'alias notebook="jupyter notebook --allow-root --no-browser --ip=0.0.0.0"' >> ~/.bashrc
 
 WORKDIR working
-
 # Start Jupyter Automatically
 ENTRYPOINT ["/bin/bash", "-c", "cp ../versions.txt versions.txt && jupyter notebook --allow-root --no-browser --ip=0.0.0.0"]
