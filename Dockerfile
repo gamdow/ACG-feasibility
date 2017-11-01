@@ -1,146 +1,136 @@
-ARG RUNTEST="FALSE"
-
 FROM ubuntu:16.04
-RUN apt-get update
+RUN chown root:root /tmp
+RUN chmod 1777 /tmp
 WORKDIR /root
 
 
-RUN apt-get install -y gcc g++ make wget git \
-  && gcc --version >> /root/versions.txt \
-  && g++ --version >> /root/versions.txt \
-  && echo "\n" >> /root/versions.txt
+RUN apt-get update && apt-get install -y linux-headers-$(uname -r) cpio g++ g++-multilib make wget git bzip2
 
 
-# INSTALL CONDA
-ENV CONDA_INSTALL_PATH=/opt/conda
-ENV PATH=$CONDA_INSTALL_PATH/bin:$PATH
-RUN apt-get install -y bzip2 apt-utils wget \
-  && wget -q https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh \
+# CONDA
+ARG CONDA_INSTALL_PATH=/opt/conda
+RUN apt-get update && apt-get install -y apt-utils \
+  && wget -q https://repo.continuum.io/miniconda/Miniconda3-4.3.21-Linux-x86_64.sh -O miniconda.sh \
   && chmod +x miniconda.sh
 RUN bash ./miniconda.sh -b -p $CONDA_INSTALL_PATH \
-  && rm miniconda.sh \
-  && echo "# Conda" >> /root/versions.txt \
-  && conda --version >> /root/versions.txt \
-  && echo "\n" >> /root/versions.txt
+  && rm miniconda.sh
+  ENV PATH=$CONDA_INSTALL_PATH/bin:$PATH
 
 
-# INSTALL JUPYTER
+# JUPYTER
 RUN conda install -y numpy matplotlib progressbar2 jupyter \
-  && conda install -y ffmpeg -c menpo \
-  && echo "# Jupyter Notebook" >> /root/versions.txt \
-  && jupyter --version >> /root/versions.txt \
-  && echo "\n" >> /root/versions.txt
+  && conda install -y ffmpeg -c menpo
 
 
-# Install OOMMF
-RUN apt-get update
-ENV OOMMFTCL /root/oommf/oommf/oommf.tcl
-RUN apt-get install -y tcl-dev tk-dev \
-  && git clone https://github.com/fangohr/oommf.git \
+# INTEL COMPILER
+ARG INTEL_PATH=/opt/intel
+ARG INTEL_YEAR=2018
+ARG INTEL_VERSION=2018.0.128
+ARG INTEL_DOWNLOAD=parallel_studio_xe_2018_cluster_edition_online
+ADD $INTEL_DOWNLOAD.tgz .
+ADD silent${INTEL_YEAR}.cfg $INTEL_DOWNLOAD/.
+RUN cd $INTEL_DOWNLOAD && ./install.sh --silent=silent${INTEL_YEAR}.cfg
+
+## Intel Environment
+RUN echo COMPILERVARS_ARCHITECTURE=intel64 >> intelenv.sh \
+  && echo . $(find /opt/intel/bin -iname compilervars.sh) >> intelenv.sh \
+  && echo . $(find /opt/intel -iname mpivars.sh) >> intelenv.sh \
+  && echo . $(find /opt/intel -iname mklvars.sh) >> intelenv.sh
+RUN echo export CC=mpiicc CXX=mpiicpc MPICC=mpiicc MPICXX=mpiicpc MPICH_CC=icc MPICH_CXX=icpc "CFLAGS=\"-O3 -xHost -fno-alias -align\" CXXFLAGS=\"-O3 -xHost -fno-alias -align\"" >> intelcomp.sh
+#RUN echo export FFlags="\"-I$(find /opt/intel -iname include64) -L$(find /opt/intel -iname lib64)\"" >> intelcomp.sh
+
+
+# OOMMF
+RUN export OOMMF_CPP='icpc -c' && . ./intelenv.sh && . ./intelcomp.sh \
+  && apt-get update && apt-get install -y tcl-dev tk-dev \
+  && git clone https://github.com/gamdow/oommf.git \
   && cd oommf \
-  && echo "# OOMMF" >> /root/versions.txt \
-  && cat /root/oommf/oommf-version >> /root/versions.txt \
+  && tclsh oommf/oommf.tcl +platform \
   && make
+ENV OOMMFTCL /root/oommf/oommf/oommf.tcl
 RUN pip install discretisedfield sarge \
-  && python -c "import discretisedfield" \
-  && pip list | grep "discretisedfield" >> /root/versions.txt \
-  && echo "\n" >> /root/versions.txt
-#  && pip install oommfc \
-#  && python -c "import oommfc"
+  && python -c "import discretisedfield"
 
 
-# INSTALL DEVITO
-ENV LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8 LANGUAGE=en_US.UTF-8
-RUN apt-get install -y locales locales-all libgl1-mesa-glx \
+# DEVITO
+RUN export DEBIAN_FRONTEND=noninteractive \
+  && apt-get update && apt-get install -y locales-all \
+  && export LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8 LANGUAGE=en_US.UTF-8 \
+  && apt-get install -y locales locales-all libgl1-mesa-glx \
   && git clone https://github.com/opesci/devito.git \
   && cd devito \
-  && echo "# Devito" >> /root/versions.txt \
-  && git config --get remote.origin.url >> /root/versions.txt \
-  && git rev-parse HEAD >> /root/versions.txt \
-  && echo "\n" >> /root/versions.txt \
-  && pip install -r requirements.txt sympy==1.0 \
+  && git reset --hard 8920ad2db1326f9e6ff480a3b0b46b98141c400e \
+  && pip install -r requirements.txt \
   && pip install -e . \
-  && (if test "$RUNTEST" = "TRUE"; then pytest; fi) \
   && python -c "import devito"
 
 
 # INSTALL OpenSBLI
 
-## OpenMPI
-ENV MPI_INSTALL_PATH /usr/lib/openmpi
-RUN apt-get install -y openmpi-bin libopenmpi-dev \
-  && mkdir /usr/lib/openmpi/bin/ \
-  && cd /usr/lib/openmpi/bin/ \
-  && ln -s /usr/bin/mpiCC mpiCC \
-  && ln -s /usr/bin/mpicc mpicc \
-  && cd /root \
-  && echo "# OpenMPI" >> /root/versions.txt \
-  && mpicc --version >> /root/versions.txt \
-  && echo "\n" >> /root/versions.txt
+
+ARG RUNTEST="FALSE"
+
+## zlib
+ARG ZLIB_VERSION=zlib-1.2.11
+RUN wget -q https://zlib.net/$ZLIB_VERSION.tar.gz -O zlib.tar.gz \
+  && tar -zxvf zlib.tar.gz \
+  && rm zlib.tar.gz \
+  && . ./intelenv.sh && export CC=icc CFLAGS="-O3 -xHost -ip" \
+  && cd $ZLIB_VERSION \
+  && ./configure --prefix=/usr/local/$ZLIB_VERSION \
+  && make && (if test "$RUNTEST" = "TRUE"; then make check; fi) \
+  && make install
 
 ## HDF5
-ENV HDF5_VERSION=hdf5-1.8.19 HDF5_INSTALL_PATH=/usr/local
-RUN apt-get install -y wget bzip2 make \
-  && wget -q https://support.hdfgroup.org/ftp/HDF5/current18/src/$HDF5_VERSION.tar.bz2 -O hdf5.tar.bz2 \
-  && tar -xjf hdf5.tar.bz2 \
-  && rm hdf5.tar.bz2 \
+ARG HDF5_VERSION=hdf5-1.10.1
+ARG HDF5_INSTALL_PATH=/usr/local
+RUN apt-get update && apt-get install -y file gcc \
+  && wget -q https://support.hdfgroup.org/ftp/HDF5/current/src/$HDF5_VERSION.tar.gz -O hdf5.tar.gz \
+  && tar -zxvf hdf5.tar.gz \
+  && rm hdf5.tar.gz \
+  && . ./intelenv.sh && . ./intelcomp.sh \
   && cd $HDF5_VERSION \
-  && ./configure --enable-parallel --prefix=$HDF5_INSTALL_PATH \
-  && make && (if test "$RUNTEST" = "TRUE"; then make test; fi) \
-  && make install && if test "$RUNTEST" = "TRUE"; then make check-install; fi \
-  && echo "# HDF5" >> /root/versions.txt \
-  && echo $HDF5_VERSION >> /root/versions.txt \
-  && echo "\n" >> /root/versions.txt
+  && ./configure --prefix=$HDF5_INSTALL_PATH --enable-parallel \
+  && make && (if test "$RUNTEST" = "TRUE"; then make check; fi) \
+  && make install
 
 ## CUDA
-ENV CUDA_VERSION=cuda_8.0.61_375.26_linux CUDA_INSTALL_PATH=/usr/local/cuda-8.0 OPENCL_INSTALL_PATH=/usr/local/cuda-8.0
-RUN apt-get update \
-  && wget -q https://developer.nvidia.com/compute/cuda/8.0/Prod2/local_installers/$CUDA_VERSION-run -O cuda.run \
+ARG CUDA_VERSION=cuda_8.0.61_375.26_linux
+RUN apt-get update && wget -q https://developer.nvidia.com/compute/cuda/8.0/Prod2/local_installers/$CUDA_VERSION-run -O cuda.run \
   && chmod -x cuda.run \
   && echo 'XKBMODEL="pc105"\nXKBLAYOUT="gb"\nXKBVARIANT=""\nXKBOPTIONS=""\n' > /etc/default/keyboard
 # Split installation step here else CUDA does not install correctly (does not copy headers to install path)
 RUN bash ./cuda.run --silent --toolkit \
   && rm cuda.run \
-  && apt-get install -f \
-  && echo "# CUDA" >> /root/versions.txt \
-  && echo $CUDA_VERSION >> /root/versions.txt \
-  && echo "\n" >> /root/versions.txt
+  && apt-get install -f
 
 ## OPS
-# Editable install ("-e") doesn't work here (python import fails) for unknown reason.
-ENV OPS_COMPILER=gnu OPS_INSTALL_PATH=/root/OPS/ops
-RUN apt-get install -y python-pytools \
+ENV OPS_COMPILER=intel OPS_INSTALL_PATH=/root/OPS/ops MPI_INSTALL_PATH=$INTEL_PATH/compilers_and_libraries_${INTEL_VERSION}/linux/mpi/intel64 HDF5_INSTALL_PATH=$HDF5_INSTALL_PATH CUDA_INSTALL_PATH=/usr/local/cuda-8.0 OPENCL_INSTALL_PATH=/usr/local/cuda-8.0
+RUN apt-get update && apt-get install -y python-pytools \
   && git clone https://github.com/gamdow/OPS.git \
-  && cd OPS \
-  && echo "# OPS" >> /root/versions.txt \
-  && git config --get remote.origin.url >> /root/versions.txt \
-  && git rev-parse HEAD >> /root/versions.txt \
-  && echo "\n" >> /root/versions.txt \
-  && cd ops/c \
+  && . ./intelenv.sh && . ./intelcomp.sh \
+  && cd OPS/ops/c \
   && make \
   && cd ../.. \
   && pip install . \
   && python -c "import ops_translator.c.ops"
 
 ## OpenSBLI
-#  && 2to3 -W -n opensbli \
-RUN apt-get install -y python-pytools \
+RUN apt-get update && apt-get install -y python-pytools \
   && git clone https://github.com/gamdow/opensbli.git \
   && cd opensbli \
-  && echo "# OpenSBLI" >> /root/versions.txt \
-  && git config --get remote.origin.url >> /root/versions.txt \
-  && echo "\n" >> /root/versions.txt \
-  && git rev-parse HEAD >> /root/versions.txt \
   && pip install -r requirements.txt \
   && pip install -e . && (if test "$RUNTEST" = "TRUE"; then pytest; fi) \
   && python -c "import opensbli"
 
 ## libz
-RUN apt-get install -y libz-dev
+#RUN apt-get update && apt-get install -y libz-dev
 
 
 # Additional Evironment Variables
 ENV DEVITO_OPENMP=1
+ENV DEVITO_ARCH=intel
+
 
 # Jupyter Tweaks
 RUN jupyter notebook --generate-config --allow-root \
@@ -150,11 +140,8 @@ RUN jupyter notebook --generate-config --allow-root \
   && echo ".container { width:100% !important; }" > .jupyter/custom/custom.css
 
 # Jupyter Alias
-#RUN echo 'alias notebook="jupyter notebook --allow-root --no-browser --ip=0.0.0.0"' >> ~/.bashrc
+RUN echo 'alias notebook="jupyter notebook --allow-root --no-browser --ip=0.0.0.0"' >> ~/.bashrc
 
-WORKDIR working
-
-#ENTRYPOINT ["/bin/bash", "-c", "python perf_test.py"]
-
+#WORKDIR working
 # Start Jupyter Automatically
-#ENTRYPOINT ["/bin/bash", "-c", "cp ../versions.txt versions.txt && jupyter notebook --allow-root --no-browser --ip=0.0.0.0"]
+CMD ["sh", "-c", ". ./intelenv.sh && . ./intelcomp.sh && jupyter notebook --allow-root --no-browser --ip=0.0.0.0"]

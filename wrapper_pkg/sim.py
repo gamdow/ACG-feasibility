@@ -1,6 +1,7 @@
 import sys
 import numpy as np
 import progressbar
+import traceback
 import warnings
 import time
 
@@ -108,6 +109,7 @@ class Sim(object):
 
             # Check for divide-by-zero (Warning)
             except (Warning) as e:
+                traceback.print_exc()
                 print("Initialisation Error: ", type(e), e, file=sys.stderr)
                 self.initialised = False
                 return
@@ -206,7 +208,7 @@ class Sim(object):
                     return False, time.time() - start
 
             duration = time.time() - start
-            print("Simulation Complete: {} steps, {} frames, {:.2f} s".format((self.data.length - 1) * self.save_every, self.data.length, duration), file=sys.stderr)
+            print("Simulation Complete: {} frames ({:.2e} s), runtime:{:.2f} s".format(self.data.length, self.time_params.d * self.time_params.n, duration), file=sys.stderr)
             sys.stderr.flush()
             return True, duration
         else:
@@ -228,7 +230,6 @@ class Sim(object):
         if "Zeeman Alignment" in test_names and self.sim_params.has_term("zeeman"):
             tests["Zeeman Alignment"] = lambda m: grid.alignment(m, vector=self.sim_params.H)
         if "Anisotropy Alignment" in test_names and self.sim_params.has_term("anisotropy"):
-            print("something")
             tests["Anisotropy Alignment"] = lambda m: grid.alignment(m, vector=self.sim_params.e, axial=True)
 
         time_slice = slice(*time_range)

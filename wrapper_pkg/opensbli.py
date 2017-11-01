@@ -9,19 +9,30 @@ import h5py
 
 from opensbli.grid import Grid
 from opensbli.spatial import Central, SpatialDiscretisation
-from opensbli.timestepping import ForwardEuler, TemporalDiscretisation
+from opensbli.timestepping import ForwardEuler, RungeKutta,  TemporalDiscretisation
 from opensbli.problem import Problem
 from opensbli.ics import GridBasedInitialisation
 from opensbli.bcs import PeriodicBoundaryCondition
 from opensbli.io import FileIO
 from opensbli.opsc import OPSC
 
-from . import sim
+from . import sim, dim_params
+
+temporal_scheme = RungeKutta(3) #ForwardEuler() #
 
 class Sim(sim.Sim):
 
     framework_name = "OpenSBLI"
     path = "opensbli_temp"
+
+    def __init__(self, sim_params, grid_params, time_params, **kwargs):
+        scaled_d = 2 * time_params.d
+        if isinstance(temporal_scheme, RungeKutta) and scaled_d <= time_params.l:
+            rktp = dim_params.DimParams(d=scaled_d, l=time_params.l)
+            kwargs['save_every'] = int(kwargs['save_every'] * rktp.n / time_params.n)
+            super(Sim, self).__init__(sim_params, grid_params, rktp, **kwargs)
+        else:
+            super(Sim, self).__init__(sim_params, grid_params, time_params, **kwargs)
 
     def generate_step_kernel(self):
         if not self.periodic_boundary:
@@ -57,7 +68,7 @@ class Sim(sim.Sim):
         grid = Grid(3, {'delta':tuple(float(i) for i in self.grid_params.d), 'number_of_points':tuple(int(i) for i in self.grid_params.n)})
         spatial_discretisation = SpatialDiscretisation(expanded_equations, expanded_formulas, grid, spatial_scheme)
 
-        temporal_scheme = ForwardEuler()
+
         constant_dt = True
         temporal_discretisation = TemporalDiscretisation(temporal_scheme, grid, constant_dt, spatial_discretisation)
 
@@ -182,9 +193,9 @@ class Sim(sim.Sim):
         rz = "Eq(grid.grid_variable(rz), {} - grid.Idx[2])".format(cz)
         norm = "Eq(grid.grid_variable(norm), pow(pow(rx,2) + pow(ry,2) + pow(rz,2),0.5))".format(cz)
         self.initial_conditions = [rx, ry, rz, norm,
-                      "Eq(grid.work_array(m0), ry / norm)",
-                      "Eq(grid.work_array(m1), -rx / norm)",
-                      "Eq(grid.work_array(m2), rz / norm)"]
+                      "Eq(grid.work_array(m0), Piecewise((ry / norm, norm > 0), (0, True)))",
+                      "Eq(grid.work_array(m1), Piecewise((-rx / norm, norm > 0), (0, True)))",
+                      "Eq(grid.work_array(m2), Piecewise((rz / norm, norm > 0), (0, True)))"]
         self.need_generate_kernels = True
         super(Sim, self).init_vortex()
 
@@ -197,8 +208,8 @@ class Sim(sim.Sim):
         rz = "Eq(grid.grid_variable(rz), {} - grid.Idx[2])".format(cz)
         norm = "Eq(grid.grid_variable(norm), pow(pow(rx,2) + pow(ry,2) + pow(rz,2),0.5))".format(cz)
         self.initial_conditions = [rx, ry, rz, norm,
-                      "Eq(grid.work_array(m0), -rx / norm)",
-                      "Eq(grid.work_array(m1), -ry / norm)",
-                      "Eq(grid.work_array(m2), -rz / norm)"]
+                      "Eq(grid.work_array(m0), Piecewise((-rx / norm, norm > 0), (0, True)) )",
+                      "Eq(grid.work_array(m1), Piecewise((-ry / norm, norm > 0), (0, True)) )",
+                      "Eq(grid.work_array(m2), Piecewise((-rz / norm, norm > 0), (1, True)) )"]
         self.need_generate_kernels = True
         super(Sim, self).init_flower()

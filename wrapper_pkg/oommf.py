@@ -43,15 +43,13 @@ solver_json = \
    file m0.omf
 }}
 
-Specify Oxs_EulerEvolve {{
+Specify Oxs_RungeKuttaEvolve:evolver {{
   alpha {alpha}
   gamma_G {gamma}
-  min_timestep {timestep}
-  max_timestep {timestep}
 }}
 
 Specify Oxs_TimeDriver {{
-  evolver Oxs_EulerEvolve
+  evolver evolver
   stopping_time {time}
   mesh :mesh
   vector_field_output_format {{ text %.17g }}

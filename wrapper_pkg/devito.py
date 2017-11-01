@@ -106,12 +106,12 @@ class Sim(sim.Sim):
         op = Operator(bcs + update, subs=subs)
 
         # Call op trigger compilation
-        op(time=1)
+        op(time=1,autotune=True)
 
         def step(f, t):
             for i, mi in enumerate(m):
                 mi.data[(0, ) + self.buffer_slice] = f[i]
-            op(time=self.save_every + 1)
+            op(time=self.save_every + 1,autotune=True)
             for i, mi in enumerate(m):
                 t[i] = mi.data[(self.save_every % 2, ) + self.buffer_slice]
 

@@ -23,7 +23,7 @@ def alignment(val, vector=None, axial=False):
         np.random.shuffle(data_list)
         np.random.seed(None)
         l = len(data_list)
-        dot = np.sum(data_list[:l//2] * data_list[-l//2:], axis=1)
+        dot = np.sum(data_list[:l//2] * data_list[int(-(l-1)//2):], axis=1)
     if axial:
         dot = np.abs(dot)
     return dot
