@@ -10,7 +10,7 @@ import apy.plotting as plt
 configs = {
     'steps':[1,100,1000]
     , 'grid':[(100,100,100),(316,316,10),(316,10,316),(10,316,316)]
-    , 'threads':[1]#[2**i for i in range(3, -1, -1)]
+    , 'threads':[2**i for i in range(3, -1, -1)]
     , 'sim_params':[{'A':1e-11, 'K':0.1e3, 'D':0, 'Hmag':0.1e3}]
 }
 frames = 1
