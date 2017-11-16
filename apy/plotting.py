@@ -1,6 +1,12 @@
 import numpy as np
 import matplotlib.pyplot as plt
-plt.switch_backend('agg')
+
+try:
+    plt.plot(1,1)
+    plt.close()
+except:
+    plt.switch_backend('agg')
+
 dpi = 400
 
 def frame(frame, zs, lengths=None, time=None, image_width=10, filename=None, show_plot=True):

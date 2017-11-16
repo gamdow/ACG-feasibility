@@ -1,8 +1,11 @@
 FROM ubuntu:16.04
 RUN chown root:root /tmp && chmod 1777 /tmp
 WORKDIR /root
-RUN apt-get update \
-  && apt-get install -qqy cpio linux-headers-$(uname -r) g++ g++-multilib
+
+RUN touch build_base.stdout
+
+RUN (apt-get update \
+  && apt-get install -y cpio linux-headers-$(uname -r) g++ g++-multilib) >> build_base.stdout
 
 # INTEL COMPILER
 ARG INTEL_PATH=/opt/intel
@@ -10,7 +13,7 @@ ARG INTEL_DOWNLOAD=parallel_studio
 ADD $INTEL_DOWNLOAD.tgz .
 RUN mv $INTEL_DOWNLOAD*/ $INTEL_DOWNLOAD/
 ADD silent.cfg $INTEL_DOWNLOAD
-RUN cd $INTEL_DOWNLOAD && ./install.sh --silent=silent.cfg
+RUN (cd $INTEL_DOWNLOAD && ./install.sh --silent=silent.cfg) >> build_base.stdout
 RUN rm -r $INTEL_DOWNLOAD
 
 ## Intel Environment
