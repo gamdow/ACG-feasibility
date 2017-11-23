@@ -6,6 +6,11 @@ all: wrapper $(foreach _framework, $(FRAMEWORKS), $(_framework)_image)
 
 clean:
 	rm -rf $$(find . -name temp)
+	-docker stop acg-wrapper-container
+	-docker rm acg-wrapper-container
+
+reset: clean
+	docker rmi -f opensbli oommf devito acg-env acg-base acg-wrapper
 
 define WRAPPER_RUN_RULE
 run_$(1): wrapper;
@@ -27,11 +32,11 @@ run_%: %_image
 	@chown -R $$SUDO_USER:$$SUDO_USER *
 
 run_%_bash: %_image
-	docker run -v "$$(pwd)":/root/working/ -it $* bash
+	docker run -v "$$(pwd)":/root/working/ -v "$$(pwd)"/apy:/root/apy -v "$$(pwd)"/temp:/root/temp -it $* bash
 	@chown -R $$SUDO_USER:$$SUDO_USER *
 
 run_%_jupyter: %_image
-	docker run -v "$$(pwd)":/root/working/ -p 127.0.0.1:8888:8888 -it $*
+	docker run -v "$$(pwd)":/root/working/ -v "$$(pwd)"/apy:/root/apy -v "$$(pwd)"/temp:/root/temp -p 127.0.0.1:8888:8888 -it $*
 	@chown -R $$SUDO_USER:$$SUDO_USER *
 
 wrapper: frameworks/Dockerfile frameworks/env.list frameworks/entrypoint.sh
