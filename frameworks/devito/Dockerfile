@@ -18,6 +18,7 @@ RUN (conda install -y jupyter progressbar2 gcc_linux-64 \
   && bash jupyter_config.sh) >> build_devito.stdout
 
 # DEVITO
+ADD https://api.github.com/repos/opesci/devito/compare/master...HEAD /dev/null
 RUN (git clone https://github.com/opesci/devito.git \
   && cd devito \
   && conda env update -n root -f environment.yml \

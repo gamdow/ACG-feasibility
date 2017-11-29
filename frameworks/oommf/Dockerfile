@@ -22,6 +22,7 @@ RUN (pip install discretisedfield sarge \
   && python -c "import discretisedfield") >> build_oommf.stdout
 
 # OOMMF
+ADD https://api.github.com/repos/gamdow/oommf/compare/master...HEAD /dev/null
 RUN (git clone https://github.com/gamdow/oommf.git \
   && cd oommf \
   && make) >> build_oommf.stdout

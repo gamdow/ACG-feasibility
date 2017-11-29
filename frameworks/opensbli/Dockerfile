@@ -53,6 +53,7 @@ RUN (apt-get install -f) >> build_opensbli.stdout
 
 ## OPS
 ENV OPS_INSTALL_PATH=/root/OPS/ops HDF5_INSTALL_PATH=$HDF5_INSTALL_PATH CUDA_INSTALL_PATH=/usr/local/cuda-8.0 OPENCL_INSTALL_PATH=/usr/local/cuda-8.0
+ADD https://api.github.com/repos/gamdow/OPS/compare/master...HEAD /dev/null
 RUN (git clone https://github.com/gamdow/OPS.git \
   && cd OPS/ops/c \
   && make \
@@ -61,6 +62,7 @@ RUN (git clone https://github.com/gamdow/OPS.git \
   && python -c "import ops_translator.c.ops") >> build_opensbli.stdout
 
 ## OpenSBLI
+ADD https://api.github.com/repos/opensbli/opensbli/compare/master...HEAD /dev/null
 RUN (git clone https://github.com/opensbli/opensbli.git \
   && cd opensbli \
   && pip install sympy==1.0 h5py pytest flake8 Sphinx \
