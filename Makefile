@@ -13,6 +13,9 @@ clean:
 reset: clean
 	docker rmi -f opensbli oommf devito acg-env acg-base acg-wrapper
 
+reset: clean
+	docker rmi -f opensbli oommf devito acg-env acg-base acg-wrapper
+
 define WRAPPER_RUN_RULE
 run_$(1): wrapper;
 	-docker run --name=acg-wrapper-container -v /var/run/docker.sock:/var/run/docker.sock -v "$$$$(pwd)":/root/working -v "$$$$(pwd)"/apy:/root/apy -v "$$$$(pwd)"/temp:/root/temp $(2) -it acg-wrapper $(3);
