@@ -5,9 +5,13 @@ FRAMEWORKS = devito oommf opensbli
 all: wrapper $(foreach _framework, $(FRAMEWORKS), $(_framework)_image)
 
 clean:
+	chown -R $$$$SUDO_USER:$$$$SUDO_USER *
 	rm -rf $$(find . -name temp)
-	-docker stop acg-wrapper-container
-	-docker rm acg-wrapper-container
+	docker stop acg-wrapper-container
+	docker rm acg-wrapper-container
+
+reset: clean
+	docker rmi -f opensbli oommf devito acg-env acg-base acg-wrapper
 
 reset: clean
 	docker rmi -f opensbli oommf devito acg-env acg-base acg-wrapper
